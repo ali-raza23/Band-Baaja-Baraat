@@ -17,7 +17,7 @@
     "react-router-dom": "^7.6.1",
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4",
-    "homepage": "https://github.com/ali-raza23/Band-Baaja-Baraat"
+    "homepage": "https://ali-raza23.github.io/Band-Baaja-Baraat"
   },
   "scripts": {
     "start": "react-scripts start",
