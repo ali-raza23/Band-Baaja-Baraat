@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ThemeProvider,
   createTheme,
@@ -17,6 +17,7 @@ import {
   useMediaQuery,
   Radio,
   RadioGroup,
+  Collapse,
 } from '@mui/material';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
@@ -28,12 +29,15 @@ import MaleIcon from '@mui/icons-material/Male';
 import FemaleIcon from '@mui/icons-material/Female';
 import FestivalIcon from '@mui/icons-material/Festival';
 import { AnimatePresence, motion } from 'framer-motion';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 
 const SearchVenue = () => {
   const isMobile = useMediaQuery('(max-width:600px)');
   const [mode, setMode] = useState('light');
   const [service, setService] = useState(null);
   const [activeStep, setActiveStep] = useState(0);
+  const [renderStep, setRenderStep] = useState(0);
   const [subLocation, setSubLocation] = useState(null);
   const [parking, setParking] = useState(false);
   const [budget, setBudget] = useState(null);
@@ -42,9 +46,16 @@ const SearchVenue = () => {
   const [staffGender, setStaffGender] = useState([]);
   const [photographerBudget, setPhotographerBudget] = useState(null);
   const [photographerGender, setPhotographerGender] = useState([]);
+  const [expanded, setExpanded] = useState(true);
+  const [completedSteps, setCompletedSteps] = useState([]);
+
+  useEffect(() => {
+    setRenderStep(activeStep);
+  }, [activeStep]);
 
   const resetStates = () => {
     setActiveStep(0);
+    setRenderStep(0);
     setSubLocation(null);
     setParking(false);
     setBudget(null);
@@ -53,6 +64,7 @@ const SearchVenue = () => {
     setStaffGender([]);
     setPhotographerBudget(null);
     setPhotographerGender([]);
+    setCompletedSteps([]);
   };
 
   const theme = useMemo(
@@ -79,22 +91,15 @@ const SearchVenue = () => {
 
   const handleNext = () => {
     if (activeStep < steps.length - 1) {
+      setCompletedSteps([...completedSteps, activeStep]);
       setActiveStep((prevStep) => prevStep + 1);
     }
   };
 
   const handleBack = () => {
     if (activeStep > 0) {
-      const newStep = activeStep - 1;
-      setActiveStep(newStep);
-      if (service === 'wedding') {
-        if (newStep < 1) setBudget(null);
-        if (newStep < 2) setVenueType(null);
-        if (newStep < 3) setCapacity(null);
-        if (newStep < 4) setStaffGender([]);
-      } else if (service === 'photographers') {
-        if (newStep < 1) setPhotographerGender([]);
-      }
+      setActiveStep((prevStep) => prevStep - 1);
+      setCompletedSteps(completedSteps.filter((step) => step !== activeStep - 1));
     }
   };
 
@@ -118,7 +123,7 @@ const SearchVenue = () => {
     'Staff Gender',
   ];
 
-  const photographerSteps = ['Budget', 'Photographer Gender'];
+  const photographerSteps = ['Photographer Budget', 'Staff Gender'];
 
   const steps =
     service === 'wedding'
@@ -126,35 +131,6 @@ const SearchVenue = () => {
       : service === 'photographers'
       ? photographerSteps
       : [];
-
-  const isStepValid = () => {
-    if (service === 'wedding') {
-      switch (activeStep) {
-        case 0:
-          return subLocation !== null;
-        case 1:
-          return budget !== null;
-        case 2:
-          return venueType !== null;
-        case 3:
-          return capacity !== null;
-        case 4:
-          return staffGender.length > 0;
-        default:
-          return false;
-      }
-    } else if (service === 'photographers') {
-      switch (activeStep) {
-        case 0:
-          return photographerBudget !== null;
-        case 1:
-          return photographerGender.length > 0;
-        default:
-          return false;
-      }
-    }
-    return false;
-  };
 
   const getStepContent = (stepIndex) => {
     if (service === 'wedding') {
@@ -166,15 +142,7 @@ const SearchVenue = () => {
                 options={['F10', 'E11', 'G9', 'Islamabad Expressway']}
                 value={subLocation}
                 onChange={(event, newValue) => setSubLocation(newValue)}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Sub-Location"
-                    required
-                    error={subLocation === null}
-                    helperText={subLocation === null ? 'Required' : ''}
-                  />
-                )}
+                renderInput={(params) => <TextField {...params} label="Sub-Location" />}
                 sx={{ mb: 2 }}
               />
               <FormControlLabel
@@ -206,7 +174,6 @@ const SearchVenue = () => {
             </>
           ) : (
             <>
-              <Typography gutterBottom>Budget (Per Person)</Typography>
               <Slider
                 value={budget !== null ? budget : 0}
                 onChange={(e, newValue) => setBudget(newValue)}
@@ -241,15 +208,7 @@ const SearchVenue = () => {
                   {option.label}
                 </li>
               )}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Type"
-                  required
-                  error={venueType === null}
-                  helperText={venueType === null ? 'Required' : ''}
-                />
-              )}
+              renderInput={(params) => <TextField {...params} label="Type" />}
               sx={{ mt: 2 }}
             />
           );
@@ -271,7 +230,6 @@ const SearchVenue = () => {
             </>
           ) : (
             <>
-              <Typography gutterBottom>Capacity</Typography>
               <Slider
                 value={capacity !== null ? capacity : 0}
                 onChange={(e, newValue) => setCapacity(newValue)}
@@ -330,7 +288,6 @@ const SearchVenue = () => {
         case 0:
           return isMobile ? (
             <>
-              <Typography gutterBottom>Photographer Budget</Typography>
               <RadioGroup
                 value={photographerBudget}
                 onChange={(e) => setPhotographerBudget(parseInt(e.target.value))}
@@ -344,7 +301,6 @@ const SearchVenue = () => {
             </>
           ) : (
             <>
-              <Typography gutterBottom>Photographer Budget</Typography>
               <Slider
                 value={photographerBudget !== null ? photographerBudget : 0}
                 onChange={(e, newValue) => setPhotographerBudget(newValue)}
@@ -402,26 +358,152 @@ const SearchVenue = () => {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+  <ThemeProvider theme={theme}>
+    <CssBaseline />
+    {isMobile ? (
       <Box
         sx={{
           minHeight: '100vh',
           bgcolor: 'background.default',
-          color: 'text.primary',
           display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          p: 2,
+          flexDirection: 'column',
+          p: 0,
+          m: 0,
         }}
       >
         <Paper
           elevation={3}
           sx={{
-            width: isMobile ? '100%' : 600,
-            maxWidth: '100%',
-            p: isMobile ? 2 : 9,
-            borderRadius: 4,
+            bgcolor: mode === 'light' ? '#f5f5f5' : '#1e1e1e',
+            p: 2,
+            borderRadius: 0,
+          }}
+        >
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            onClick={() => setExpanded(!expanded)}
+            sx={{ cursor: 'pointer' }}
+          >
+            <Typography variant="h5">Venue Search</Typography>
+            <Box>
+              <IconButton onClick={handleModeToggle}>
+                {mode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
+              </IconButton>
+              <IconButton onClick={() => setExpanded(!expanded)}>
+                {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              </IconButton>
+            </Box>
+          </Box>
+
+          <Collapse in={expanded}>
+            <Autocomplete
+              options={[
+                { label: 'Wedding Venues', icon: <GiteIcon />, value: 'wedding' },
+                { label: 'Photographers', icon: <CameraAltIcon />, value: 'photographers' },
+              ]}
+              getOptionLabel={(option) => option.label}
+              value={
+                service
+                  ? {
+                      label: service === 'wedding' ? 'Wedding Venues' : 'Photographers',
+                      value: service,
+                    }
+                  : null
+              }
+              onChange={(e, newValue) => {
+                setService(newValue ? newValue.value : null);
+                resetStates();
+              }}
+              renderOption={(props, option) => (
+                <li {...props} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {option.icon}
+                  {option.label}
+                </li>
+              )}
+              renderInput={(params) => <TextField {...params} label="Service" />}
+              sx={{ mb: 4, mt: 2 }}
+            />
+
+            {service && (
+              <>
+                {completedSteps.map((step) => (
+                  <Box key={step} mb={4}>
+                    <Typography variant="subtitle1" gutterBottom>
+                      {steps[step]}
+                    </Typography>
+                    <Box sx={{ pl: 2 }}>{getStepContent(step)}</Box>
+                  </Box>
+                ))}
+
+                <Box mb={4}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    {steps[activeStep]}
+                  </Typography>
+                  <Box sx={{ pl: 2 }}>
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={`step-${renderStep}`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{
+                          opacity: { duration: 0.3, ease: 'easeInOut' },
+                          exit: { duration: 0 }
+                        }}
+                      >
+                        {getStepContent(renderStep)}
+                      </motion.div>
+                    </AnimatePresence>
+                  </Box>
+                </Box>
+
+                <Box mt={4} display="flex" justifyContent="space-between">
+                  <Button disabled={activeStep === 0} onClick={handleBack}>
+                    Back
+                  </Button>
+                  <Button
+                    onClick={handleNext}
+                    variant="contained"
+                    disabled={activeStep === steps.length - 1 && completedSteps.includes(activeStep)}
+                  >
+                    {activeStep === steps.length - 1 ? 'Finish' : 'Next'}
+                  </Button>
+                </Box>
+              </>
+            )}
+          </Collapse>
+        </Paper>
+
+        <Paper
+          elevation={0}
+          sx={{
+            flex: 1,
+            bgcolor: mode === 'light' ? '#ffffff' : '#2c2c2c',
+            borderRadius: 0,
+            minHeight: '50vh',
+          }}
+        />
+      </Box>
+    ) : (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          bgcolor: 'background.default',
+          display: 'flex',
+          p: 0,
+          m: 0,
+        }}
+      >
+        <Paper
+          elevation={3}
+          sx={{
+            flex: 1,
+            bgcolor: mode === 'light' ? '#f5f5f5' : '#1e1e1e',
+            p: 4,
+            borderRadius: 0,
+            overflowY: 'auto',
           }}
         >
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
@@ -460,34 +542,65 @@ const SearchVenue = () => {
           />
 
           {service && (
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeStep}
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
-                transition={{ duration: 0.4 }}
-              >
-                {getStepContent(activeStep)}
-                <Box mt={4} display="flex" justifyContent="space-between">
-                  <Button disabled={activeStep === 0} onClick={handleBack}>
-                    Back
-                  </Button>
-                  <Button
-                    disabled={!isStepValid()}
-                    onClick={handleNext}
-                    variant="contained"
-                  >
-                    {activeStep === steps.length - 1 ? 'Finish' : 'Next'}
-                  </Button>
+            <>
+              {completedSteps.map((step) => (
+                <Box key={step} mb={4}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    {steps[step]}
+                  </Typography>
+                  <Box sx={{ pl: 2 }}>{getStepContent(step)}</Box>
                 </Box>
-              </motion.div>
-            </AnimatePresence>
+              ))}
+
+              <Box mb={4}>
+                <Typography variant="subtitle1" gutterBottom>
+                  {steps[activeStep]}
+                </Typography>
+                <Box sx={{ pl: 2 }}>
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={`step-${renderStep}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{
+                        opacity: { duration: 0.3, ease: 'easeInOut' },
+                        exit: { duration: 4 }
+                      }}
+                    >
+                      {getStepContent(renderStep)}
+                    </motion.div>
+                  </AnimatePresence>
+                </Box>
+              </Box>
+
+              <Box mt={4} display="flex" justifyContent="space-between">
+                <Button disabled={activeStep === 0} onClick={handleBack}>
+                  Back
+                </Button>
+                <Button
+                  onClick={handleNext}
+                  variant="contained"
+                  disabled={activeStep === steps.length - 1 && completedSteps.includes(activeStep)}
+                >
+                  {activeStep === steps.length - 1 ? 'Finish' : 'Next'}
+                </Button>
+              </Box>
+            </>
           )}
         </Paper>
+
+        <Paper
+          elevation={0}
+          sx={{
+            flex: 1,
+            bgcolor: mode === 'light' ? '#ffffff' : '#2c2c2c',
+            borderRadius: 0,
+          }}
+        />
       </Box>
-    </ThemeProvider>
-  );
-};
+    )}
+  </ThemeProvider>
+);};
 
 export default SearchVenue;
